@@ -1,0 +1,547 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum ResumeFileType {
+  PDF
+  DOCX
+  DOC
+  TXT
+  OTHER
+}
+
+enum CampaignType {
+  IMMEDIATE
+  SCHEDULED
+  RECURRING
+}
+
+enum CampaignStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  COMPLETED
+  ARCHIVED
+}
+
+enum JobBoard {
+  LINKEDIN
+  INDEED
+  MONSTER
+  GLASSDOOR
+  ZIPRECRUITER
+  CAREERBUILDER
+  ANGELLIST
+  REMOTEOK
+  WEWORKREMOTELY
+  OTHER
+}
+
+enum ApplicationMethod {
+  DIRECT
+  EMAIL
+  EXTERNAL
+  MULTI_STEP
+  UNKNOWN
+}
+
+enum CampaignJobStatus {
+  PENDING
+  QUEUED
+  PROCESSING
+  COMPLETED
+  FAILED
+  SKIPPED
+}
+
+enum ApplicationStatus {
+  QUEUED
+  SUBMISSION_IN_PROGRESS
+  SUBMITTED
+  CONFIRMED
+  FAILED
+  CANCELLED
+  RESPONDED
+  ARCHIVED
+}
+
+enum SubmissionChannel {
+  AUTO_FORM
+  EMAIL
+  REDIRECT
+  MANUAL
+}
+
+enum CoverLetterTone {
+  PROFESSIONAL
+  FRIENDLY
+  ENTHUSIASTIC
+  FORMAL
+  CASUAL
+}
+
+enum ApplicationEventType {
+  CREATED
+  SUBMISSION_STARTED
+  SUBMISSION_SUCCEEDED
+  SUBMISSION_FAILED
+  RESPONSE_RECEIVED
+  INTERVIEW_SCHEDULED
+  OFFER_RECEIVED
+  REJECTION_RECEIVED
+  STATUS_UPDATED
+  NOTE_ADDED
+}
+
+enum NotificationChannel {
+  EMAIL
+  SMS
+  PUSH
+  SLACK
+}
+
+enum NotificationType {
+  APPLICATION_SENT
+  RESPONSE_RECEIVED
+  INTERVIEW_SCHEDULED
+  CAMPAIGN_STATUS
+  ALERT
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  FAILED
+  SUPPRESSED
+}
+
+enum EmailProvider {
+  GENERIC
+  GMAIL
+  OUTLOOK
+  IMAP
+}
+
+enum IntegrationStatus {
+  ACTIVE
+  DISCONNECTED
+  ERROR
+}
+
+enum AnalyticsScope {
+  USER
+  CAMPAIGN
+  PLATFORM
+}
+
+enum AutomationTaskType {
+  SCRAPE
+  MATCH
+  APPLY
+  FOLLOW_UP
+  ANALYTICS
+}
+
+enum TaskStatus {
+  PENDING
+  QUEUED
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+  RETRYING
+}
+
+model User {
+  id                     String                   @id @default(cuid())
+  email                  String                   @unique
+  name                   String?
+  role                   Role                     @default(USER)
+  timezone               String?
+  phone                  String?
+  avatarUrl              String?
+  createdAt              DateTime                 @default(now())
+  updatedAt              DateTime                 @updatedAt
+  profile                UserProfile?
+  skills                 UserSkill[]
+  resumes                Resume[]
+  campaigns              Campaign[]
+  matches                JobMatch[]
+  applications           JobApplication[]
+  coverLetterTemplates   CoverLetterTemplate[]
+  coverLetters           CoverLetterInstance[]
+  notifications          Notification[]
+  notificationPreference NotificationPreference?
+  emailIntegrations      EmailIntegration[]
+  analyticsSnapshots     AnalyticsSnapshot[]
+  automationTasks        AutomationTask[]
+  applicationResponses   ApplicationResponse[]
+}
+
+model UserProfile {
+  id                  String                  @id @default(cuid())
+  userId              String                  @unique
+  headline            String?
+  summary             String?
+  location            String?
+  yearsExperience     Int?
+  primaryRole         String?
+  workEligibility     Json?
+  preferenceSettings  Json?
+  objectiveSettings   Json?
+  exclusionSettings   Json?
+  createdAt           DateTime                @default(now())
+  updatedAt           DateTime                @updatedAt
+  user                User                    @relation(fields: [userId], references: [id])
+  experiences         ProfessionalExperience[]
+  education           EducationHistory[]
+}
+
+model ProfessionalExperience {
+  id             String      @id @default(cuid())
+  profileId      String
+  company        String
+  title          String
+  startDate      DateTime
+  endDate        DateTime?
+  isCurrent      Boolean     @default(false)
+  description    String?
+  achievements   Json?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  profile        UserProfile @relation(fields: [profileId], references: [id])
+}
+
+model EducationHistory {
+  id           String      @id @default(cuid())
+  profileId    String
+  institution  String
+  degree       String?
+  fieldOfStudy String?
+  startDate    DateTime?
+  endDate      DateTime?
+  description  String?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  profile      UserProfile @relation(fields: [profileId], references: [id])
+}
+
+model Skill {
+  id        String     @id @default(cuid())
+  name      String     @unique
+  category  String?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  users     UserSkill[]
+}
+
+model UserSkill {
+  id               String   @id @default(cuid())
+  userId           String
+  skillId          String
+  proficiency      Int?
+  yearsExperience  Float?
+  lastUsedAt       DateTime?
+  metadata         Json?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  user             User     @relation(fields: [userId], references: [id])
+  skill            Skill    @relation(fields: [skillId], references: [id])
+
+  @@unique([userId, skillId])
+}
+
+model Resume {
+  id          String          @id @default(cuid())
+  userId      String
+  label       String
+  storageKey  String
+  fileType    ResumeFileType
+  checksum    String?
+  isPrimary   Boolean         @default(false)
+  metadata    Json?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  user        User            @relation(fields: [userId], references: [id])
+  versions    ResumeVersion[]
+  applications JobApplication[]
+}
+
+model ResumeVersion {
+  id         String   @id @default(cuid())
+  resumeId   String
+  version    Int
+  storageKey String
+  metadata   Json?
+  createdAt  DateTime @default(now())
+  resume     Resume   @relation(fields: [resumeId], references: [id])
+
+  @@unique([resumeId, version])
+}
+
+model JobPosting {
+  id                 String               @id @default(cuid())
+  jobBoard           JobBoard
+  externalId         String?
+  url                String
+  title              String
+  company            String
+  location           String?
+  salaryRange        Json?
+  description        String?
+  requirements       Json?
+  benefits           Json?
+  applicationMethod  ApplicationMethod?
+  postingDate        DateTime?
+  expiresAt          DateTime?
+  employmentType     String?
+  workArrangement    String?
+  tags               Json?
+  scrapedAt          DateTime            @default(now())
+  scraperMetadata    Json?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  matches            JobMatch[]
+  applications       JobApplication[]
+  campaignJobs       CampaignJob[]
+  coverLetters       CoverLetterInstance[]
+  automationTasks    AutomationTask[]
+
+  @@unique([jobBoard, externalId], map: "job_posting_external_unique")
+}
+
+model JobMatch {
+  id            String        @id @default(cuid())
+  jobPostingId  String
+  userId        String
+  matchScore    Float
+  factors       Json?
+  diversityTag  String?
+  generatedAt   DateTime      @default(now())
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  jobPosting    JobPosting    @relation(fields: [jobPostingId], references: [id])
+  user          User          @relation(fields: [userId], references: [id])
+  campaignJobs  CampaignJob[]
+  applications  JobApplication[]
+  automationTasks AutomationTask[]
+
+  @@unique([jobPostingId, userId], map: "job_match_job_user_unique")
+}
+
+model Campaign {
+  id                     String              @id @default(cuid())
+  userId                 String
+  name                   String
+  description            String?
+  type                   CampaignType
+  status                 CampaignStatus      @default(DRAFT)
+  schedule               Json?
+  preferences            Json?
+  targeting              Json?
+  dailyApplicationLimit  Int?
+  priority               Int                 @default(0)
+  startDate              DateTime?
+  endDate                DateTime?
+  createdAt              DateTime            @default(now())
+  updatedAt              DateTime            @updatedAt
+  user                   User                @relation(fields: [userId], references: [id])
+  jobs                   CampaignJob[]
+  applications           JobApplication[]
+  analytics              AnalyticsSnapshot[]
+  automationTasks        AutomationTask[]
+}
+
+model CampaignJob {
+  id             String            @id @default(cuid())
+  campaignId     String
+  jobMatchId     String
+  status         CampaignJobStatus @default(PENDING)
+  scheduledFor   DateTime?
+  priority       Int               @default(0)
+  attempts       Int               @default(0)
+  lastAttemptAt  DateTime?
+  result         Json?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  campaign       Campaign          @relation(fields: [campaignId], references: [id])
+  jobMatch       JobMatch          @relation(fields: [jobMatchId], references: [id])
+
+  @@unique([campaignId, jobMatchId])
+}
+
+model JobApplication {
+  id                  String             @id @default(cuid())
+  jobPostingId        String
+  userId              String
+  campaignId          String?
+  jobMatchId          String?
+  resumeId            String?
+  coverLetterId       String?
+  status              ApplicationStatus  @default(QUEUED)
+  submissionChannel   SubmissionChannel
+  appliedAt           DateTime?
+  confirmationMetadata Json?
+  responseMetadata    Json?
+  lastCheckedAt       DateTime?
+  trackingData        Json?
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+  jobPosting          JobPosting         @relation(fields: [jobPostingId], references: [id])
+  user                User               @relation(fields: [userId], references: [id])
+  campaign            Campaign?          @relation(fields: [campaignId], references: [id])
+  jobMatch            JobMatch?          @relation(fields: [jobMatchId], references: [id])
+  resume              Resume?            @relation(fields: [resumeId], references: [id])
+  coverLetter         CoverLetterInstance? @relation("ApplicationCoverLetter", fields: [coverLetterId], references: [id])
+  events              ApplicationEvent[]
+  responses           ApplicationResponse[]
+
+  @@index([userId, status])
+  @@index([campaignId])
+}
+
+model ApplicationEvent {
+  id            String               @id @default(cuid())
+  applicationId String
+  type          ApplicationEventType
+  occurredAt    DateTime             @default(now())
+  payload       Json?
+  createdAt     DateTime             @default(now())
+  application   JobApplication       @relation(fields: [applicationId], references: [id])
+}
+
+model CoverLetterTemplate {
+  id              String              @id @default(cuid())
+  userId          String
+  name            String
+  tone            CoverLetterTone     @default(PROFESSIONAL)
+  industry        String?
+  promptOverrides Json?
+  metadata        Json?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  user            User                @relation(fields: [userId], references: [id])
+  instances       CoverLetterInstance[]
+}
+
+model CoverLetterInstance {
+  id            String              @id @default(cuid())
+  userId        String
+  templateId    String?
+  jobPostingId  String?
+  content       String
+  summary       Json?
+  tokensUsed    Int?
+  metadata      Json?
+  generatedAt   DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  user          User                @relation(fields: [userId], references: [id])
+  template      CoverLetterTemplate? @relation(fields: [templateId], references: [id])
+  jobPosting    JobPosting?         @relation(fields: [jobPostingId], references: [id])
+  application   JobApplication?     @relation("ApplicationCoverLetter")
+}
+
+model NotificationPreference {
+  id          String     @id @default(cuid())
+  userId      String     @unique
+  preferences Json?
+  quietHours  Json?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  user        User       @relation(fields: [userId], references: [id])
+}
+
+model Notification {
+  id        String             @id @default(cuid())
+  userId    String
+  type      NotificationType
+  channel   NotificationChannel
+  payload   Json
+  status    NotificationStatus  @default(PENDING)
+  sentAt    DateTime?
+  error     String?
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+  user      User               @relation(fields: [userId], references: [id])
+}
+
+model EmailIntegration {
+  id                 String             @id @default(cuid())
+  userId             String
+  provider           EmailProvider      @default(GENERIC)
+  emailAddress       String
+  settings           Json?
+  status             IntegrationStatus  @default(ACTIVE)
+  lastSyncedAt       DateTime?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  user               User               @relation(fields: [userId], references: [id])
+  trackedResponses   ApplicationResponse[]
+
+  @@unique([userId, emailAddress])
+}
+
+model ApplicationResponse {
+  id                  String             @id @default(cuid())
+  applicationId       String?
+  userId              String
+  emailIntegrationId  String?
+  classification      String?
+  payload             Json?
+  receivedAt          DateTime           @default(now())
+  createdAt           DateTime           @default(now())
+  user                User               @relation(fields: [userId], references: [id])
+  application         JobApplication?    @relation(fields: [applicationId], references: [id])
+  emailIntegration    EmailIntegration?  @relation(fields: [emailIntegrationId], references: [id])
+}
+
+model AnalyticsSnapshot {
+  id          String          @id @default(cuid())
+  scope       AnalyticsScope  @default(USER)
+  userId      String?
+  campaignId  String?
+  periodStart DateTime
+  periodEnd   DateTime
+  metrics     Json
+  createdAt   DateTime        @default(now())
+  user        User?           @relation(fields: [userId], references: [id])
+  campaign    Campaign?       @relation(fields: [campaignId], references: [id])
+
+  @@index([userId])
+  @@index([campaignId])
+}
+
+model AutomationTask {
+  id            String             @id @default(cuid())
+  type          AutomationTaskType
+  status        TaskStatus         @default(PENDING)
+  priority      Int                @default(0)
+  userId        String?
+  campaignId    String?
+  jobPostingId  String?
+  jobMatchId    String?
+  payload       Json?
+  result        Json?
+  attempts      Int                @default(0)
+  maxAttempts   Int                @default(3)
+  scheduledFor  DateTime?
+  startedAt     DateTime?
+  finishedAt    DateTime?
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  user          User?              @relation(fields: [userId], references: [id])
+  campaign      Campaign?          @relation(fields: [campaignId], references: [id])
+  jobPosting    JobPosting?        @relation(fields: [jobPostingId], references: [id])
+  jobMatch      JobMatch?          @relation(fields: [jobMatchId], references: [id])
+}
