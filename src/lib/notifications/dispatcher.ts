@@ -21,16 +21,35 @@ export type NotificationPayload = {
 };
 
 const env = getEnv();
+const FROM_EMAIL = env.EMAIL_FROM ?? "notifications@ai-job-apply.com";
+const FROM_NAME = "AIJobApply";
+let mailer: nodemailer.Transporter | null = null;
 
 const getMailer = () => {
-  if (!env.SENDGRID_API_KEY) {
-    return nodemailer.createTransport({
-      jsonTransport: true,
-    });
+  if (mailer) {
+    return mailer;
   }
 
-  sendgrid.setApiKey(env.SENDGRID_API_KEY);
-  return null;
+  if (env.SMTP_HOST) {
+    mailer = nodemailer.createTransport({
+      host: env.SMTP_HOST,
+      port: env.SMTP_PORT ?? 587,
+      secure: (env.SMTP_PORT ?? 587) === 465,
+      auth:
+        env.SMTP_USER && env.SMTP_PASSWORD
+          ? {
+              user: env.SMTP_USER,
+              pass: env.SMTP_PASSWORD,
+            }
+          : undefined,
+    });
+    return mailer;
+  }
+
+  mailer = nodemailer.createTransport({
+    jsonTransport: true,
+  });
+  return mailer;
 };
 
 const sendEmail = async (payload: NotificationPayload["email"]) => {
@@ -39,10 +58,14 @@ const sendEmail = async (payload: NotificationPayload["email"]) => {
   }
 
   if (env.SENDGRID_API_KEY) {
+    sendgrid.setApiKey(env.SENDGRID_API_KEY);
     await sendgrid.send({
       to: payload.to,
-      from: "notifications@ai-job-apply.com",
-      subject: payload.subject,
+      from: {
+        email: FROM_EMAIL,
+        name: FROM_NAME,
+      },
+      subject: payload.subject ?? "Notification from AIJobApply",
       html: payload.html,
     });
     return;
@@ -51,8 +74,8 @@ const sendEmail = async (payload: NotificationPayload["email"]) => {
   const transport = getMailer();
   await transport.sendMail({
     to: payload.to,
-    from: "notifications@ai-job-apply.com",
-    subject: payload.subject,
+    from: `${FROM_NAME} <${FROM_EMAIL}>`,
+    subject: payload.subject ?? "Notification from AIJobApply",
     html: payload.html,
   });
 };
