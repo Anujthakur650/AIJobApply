@@ -1,201 +1,190 @@
-type Metric = {
-  title: string;
-  value: string;
-  description: string;
-};
+import Link from "next/link";
+import {
+  ArrowRight,
+  BarChart3,
+  BrainCircuit,
+  Clock3,
+  MailCheck,
+  Sparkle,
+  Workflow,
+} from "lucide-react";
 
-const metrics: Metric[] = [
-  {
-    title: "Automation Success",
-    value: "95%",
-    description: "Average completion rate for multi-site applications",
-  },
-  {
-    title: "Time Saved",
-    value: "70%",
-    description: "Reduction in manual job search and form filling",
-  },
-  {
-    title: "Interview Lift",
-    value: "50%",
-    description: "Increase in interview invitations for active users",
-  },
-];
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { APP_NAME, DEMO_EMAIL } from "@/lib/constants";
 
 const features = [
   {
-    title: "Intelligent Scraping",
+    title: "Intelligent job matching",
     description:
-      "Distributed Playwright-based collectors with proxy rotation, CAPTCHA solving, and human-like behavior to gather rich job data from top boards.",
+      "Blend skills, experience, seniority, and preferences to surface the next best application moves.",
+    icon: BrainCircuit,
   },
   {
-    title: "Adaptive Applications",
+    title: "Automated submissions",
     description:
-      "AI-powered form detection maps resumes, cover letters, and profile insights to multi-step forms, handling uploads and validation effortlessly.",
+      "Pre-fill forms, upload documents, and queue personalized outreach without breaking compliance.",
+    icon: Workflow,
   },
   {
-    title: "AI Matching",
+    title: "Campaign insights",
     description:
-      "Semantic embeddings, skill taxonomies, and preference scoring produce configurable match thresholds with diversity balancing.",
-  },
-  {
-    title: "Campaign Automation",
-    description:
-      "Precision campaign orchestration with daily limits, priority queues, and recovery strategies that protect account health.",
-  },
-  {
-    title: "Insights & Signals",
-    description:
-      "Real-time dashboards, conversion funnels, and predictive analytics track every response, interview, and offer across channels.",
-  },
-  {
-    title: "Enterprise-Grade Compliance",
-    description:
-      "GDPR, CCPA, SOC2 controls with encryption, consent auditing, and responsible automation guardrails built-in.",
+      "Monitor funnel health at a glance—application velocity, response rates, and focus time saved.",
+    icon: BarChart3,
   },
 ];
 
-const phases = [
+const highlights = [
   {
-    label: "Multi-Site Intelligence",
-    description:
-      "Integrate LinkedIn, Indeed, Monster, Glassdoor, RemoteOK, and more with resilient scraping and automated submissions.",
+    title: "45+ minutes saved per role",
+    description: "Templated profiles, resume variants, and guided prompts keep quality high at speed.",
+    icon: Clock3,
   },
   {
-    label: "AI-Driven Targeting",
+    title: "Human-in-the-loop ready",
     description:
-      "Enrich profiles with resume parsing, skill taxonomies, and semantic matching to prioritize the best-fit roles.",
+      "Route approvals, capture notes, and handoff to teammates across recruiting, operations, or mentors.",
+    icon: MailCheck,
   },
   {
-    label: "Campaign Operations",
+    title: "Privacy-first guardrails",
     description:
-      "Run bulk campaigns with rate limiting, failover, and alerting that mimics premium human recruiters.",
-  },
-  {
-    label: "Content & Conversations",
-    description:
-      "Generate bespoke cover letters, optimize resumes, and manage responses across email, SMS, and Slack.",
+      "No credentials stored by default. Bring your own integrations when you are ready to scale.",
+    icon: Sparkle,
   },
 ];
 
-export default function Home() {
+export default function HomePage() {
   return (
-    <div className="min-h-screen bg-[var(--background)]">
-      <div className="mx-auto flex max-w-6xl flex-col gap-16 px-6 py-20 lg:px-12">
-        <section className="grid gap-12 lg:grid-cols-[1.2fr,0.8fr] lg:items-center">
-          <div className="space-y-6">
-            <span className="inline-flex w-fit items-center rounded-full border border-blue-100 bg-blue-50 px-4 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--primary)]">
-              Production Ready
-            </span>
-            <h1 className="text-4xl font-semibold leading-tight text-[var(--foreground)] sm:text-5xl">
-              AIJobApply automates the entire job search lifecycle with enterprise precision.
-            </h1>
-            <p className="text-lg leading-relaxed text-[var(--muted)]">
-              Launch intelligent campaigns that scour every major job board, generate personalized collateral, and submit applications end-to-end while staying compliant, observable, and secure.
-            </p>
-            <div className="flex flex-wrap gap-4">
-              <button className="rounded-full bg-[var(--primary)] px-6 py-3 text-sm font-semibold text-white transition hover:bg-blue-700">
-                Explore Platform
-              </button>
-              <button className="rounded-full border border-blue-200 px-6 py-3 text-sm font-semibold text-[var(--primary)] hover:border-blue-300 hover:bg-blue-50">
-                Download Architecture Deck
-              </button>
-            </div>
+    <div className="container space-y-16 pb-16 pt-12 md:pt-16">
+      <section className="grid gap-10 md:grid-cols-[1.3fr_1fr] md:items-center">
+        <div className="space-y-6">
+          <Badge variant="secondary" className="uppercase tracking-wide">
+            Preview build
+          </Badge>
+          <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
+            {APP_NAME} automates the job search so you can focus on conversations.
+          </h1>
+          <p className="text-lg text-muted-foreground">
+            Spin up campaigns across the boards you care about, receive curated matches, and launch
+            compliant applications in minutes. This preview showcases the navigation, dashboards, and
+            flows that anchor the experience.
+          </p>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <Button asChild size="lg">
+              <Link href="/auth">
+                Explore the demo <ArrowRight className="ml-2 size-4" />
+              </Link>
+            </Button>
+            <Button variant="ghost" size="lg" asChild>
+              <Link href="/dashboard">View dashboard</Link>
+            </Button>
           </div>
-          <div className="grid gap-4 rounded-3xl bg-white p-8 shadow-lg shadow-blue-100">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-[var(--primary)]">
-              Results that compound
-            </h2>
-            <div className="grid gap-6 sm:grid-cols-3">
-              {metrics.map((metric) => (
-                <div key={metric.title} className="space-y-2">
-                  <p className="text-3xl font-semibold text-[var(--foreground)]">
-                    {metric.value}
-                  </p>
-                  <h3 className="text-sm font-medium uppercase tracking-wide text-[var(--muted)]">
-                    {metric.title}
-                  </h3>
-                  <p className="text-xs text-slate-500">{metric.description}</p>
-                </div>
-              ))}
-            </div>
-            <p className="rounded-xl bg-blue-50 p-4 text-xs leading-relaxed text-[var(--muted)]">
-              Campaigns orchestrate scraping, matching, and application tasks through BullMQ-powered queues with Redis-backed rate controls, ensuring sustainable automation across every job destination.
-            </p>
-          </div>
-        </section>
-
-        <section className="grid gap-6">
-          <h2 className="text-3xl font-semibold text-[var(--foreground)]">
-            Platform Capabilities
-          </h2>
-          <div className="grid gap-6 md:grid-cols-2">
-            {features.map((feature) => (
-              <div
-                key={feature.title}
-                className="space-y-3 rounded-2xl border border-blue-100 bg-white p-6 transition hover:-translate-y-1 hover:shadow-xl hover:shadow-blue-100"
-              >
-                <h3 className="text-lg font-semibold text-[var(--foreground)]">
-                  {feature.title}
-                </h3>
-                <p className="text-sm leading-relaxed text-slate-600">
-                  {feature.description}
-                </p>
+          <p className="text-sm text-muted-foreground">
+            Use credentials <span className="font-semibold">{DEMO_EMAIL}</span> /
+            <span className="font-semibold"> password123</span> to access the interactive areas.
+          </p>
+        </div>
+        <Card className="border-primary/20 bg-card/70 backdrop-blur">
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">
+              Weekly impact overview <Sparkle className="size-5 text-primary" />
+            </CardTitle>
+            <CardDescription>
+              A glimpse into how the automation engine keeps you informed and in control.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="grid gap-4">
+              <div className="flex items-center justify-between rounded-lg bg-primary/10 px-4 py-3">
+                <span className="text-sm font-medium text-primary">Applications queued</span>
+                <span className="text-xl font-semibold text-primary">18</span>
               </div>
-            ))}
-          </div>
-        </section>
-
-        <section className="grid gap-6 lg:grid-cols-[0.8fr,1.2fr] lg:items-center">
-          <div className="space-y-4">
-            <h2 className="text-3xl font-semibold text-[var(--foreground)]">
-              Program roadmap for enterprise roll-out
-            </h2>
-            <p className="text-sm text-slate-600">
-              Each phase ships production-grade infrastructure with automation, intelligence, communications, and compliance evolving in concert.
-            </p>
-          </div>
-          <div className="grid gap-4">
-            {phases.map((phase) => (
-              <div
-                key={phase.label}
-                className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
-              >
-                <h3 className="text-base font-semibold text-[var(--foreground)]">
-                  {phase.label}
-                </h3>
-                <p className="text-sm text-slate-600">{phase.description}</p>
+              <div className="flex items-center justify-between rounded-lg bg-secondary/10 px-4 py-3">
+                <span className="text-sm font-medium text-secondary-foreground">
+                  Roles flagged as high match
+                </span>
+                <span className="text-xl font-semibold text-secondary-foreground">12</span>
               </div>
-            ))}
-          </div>
-        </section>
+              <div className="flex items-center justify-between rounded-lg bg-muted px-4 py-3">
+                <span className="text-sm font-medium text-muted-foreground">
+                  Response velocity improvement
+                </span>
+                <span className="text-xl font-semibold text-foreground">+36%</span>
+              </div>
+            </div>
+            <div className="rounded-lg border border-dashed border-primary/30 bg-background p-4 text-sm">
+              <p className="font-semibold text-primary">What is live in this preview?</p>
+              <ul className="mt-3 space-y-2 text-muted-foreground">
+                <li>• Navigation across dashboards, jobs, applications, and settings</li>
+                <li>• Auth flows powered by NextAuth with demo credentials</li>
+                <li>• Mocked activity feeds, status chips, and relevance scoring</li>
+              </ul>
+            </div>
+          </CardContent>
+        </Card>
+      </section>
 
-        <section className="grid gap-6 rounded-3xl bg-[var(--primary)] p-10 text-white">
-          <h2 className="text-3xl font-semibold">
-            Compliance, security, and observability by design
-          </h2>
-          <div className="grid gap-6 md:grid-cols-3">
-            <div>
-              <h3 className="font-semibold uppercase tracking-wide">Protected Data</h3>
-              <p className="mt-2 text-sm text-blue-100">
-                Role-based access, AES-256 encryption, and audit logging ensure every resume, profile, and application is safeguarded.
-              </p>
-            </div>
-            <div>
-              <h3 className="font-semibold uppercase tracking-wide">Responsible Automation</h3>
-              <p className="mt-2 text-sm text-blue-100">
-                Adjustable thresholds with opt-in reviews maintain relevance quality and respect site policies.
-              </p>
-            </div>
-            <div>
-              <h3 className="font-semibold uppercase tracking-wide">Operational Insight</h3>
-              <p className="mt-2 text-sm text-blue-100">
-                PostHog product analytics, Sentry error capture, and Grafana-ready metrics create a complete monitoring fabric.
-              </p>
-            </div>
-          </div>
-        </section>
-      </div>
+      <section className="space-y-10">
+        <div className="max-w-2xl">
+          <h2 className="text-3xl font-semibold tracking-tight text-foreground">What you can explore</h2>
+          <p className="mt-2 text-base text-muted-foreground">
+            Each page in this preview highlights how candidates orchestrate their pipeline—from
+            discovery to submission—while staying informed via activity feeds and metrics.
+          </p>
+        </div>
+        <div className="grid gap-6 md:grid-cols-3">
+          {features.map((feature) => (
+            <Card key={feature.title} className="h-full border-border/60">
+              <CardHeader className="space-y-3">
+                <feature.icon className="size-9 rounded-md bg-primary/10 p-2 text-primary" />
+                <CardTitle>{feature.title}</CardTitle>
+                <CardDescription>{feature.description}</CardDescription>
+              </CardHeader>
+            </Card>
+          ))}
+        </div>
+      </section>
+
+      <section className="grid gap-6 rounded-3xl border border-border/70 bg-gradient-to-r from-primary/10 via-background to-secondary/10 p-8 md:grid-cols-3">
+        {highlights.map((highlight) => (
+          <Card key={highlight.title} className="h-full border-none bg-transparent shadow-none">
+            <CardHeader className="space-y-3 p-0">
+              <highlight.icon className="size-10 text-primary" />
+              <CardTitle className="text-xl">{highlight.title}</CardTitle>
+              <CardDescription className="text-base text-muted-foreground">
+                {highlight.description}
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        ))}
+        <Card className="flex h-full flex-col justify-between border-none bg-background/80 shadow-sm">
+          <CardHeader>
+            <CardTitle>Ready to test the flow?</CardTitle>
+            <CardDescription>
+              Sign in with the demo credentials, navigate to the dashboard, and inspect how the mock
+              data renders across pages.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3 pt-0">
+            <Button asChild>
+              <Link href="/auth">Launch auth</Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link href="https://vercel.com" target="_blank" rel="noreferrer">
+                View deployment guidance
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </section>
     </div>
   );
 }

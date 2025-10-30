@@ -1,116 +1,79 @@
-# AIJobApply Automation Platform
+# AIJobApply Preview Experience
 
-AIJobApply is a production-focused platform that automates the end-to-end job search lifecycle across leading job boards. It orchestrates resilient multi-site scraping, intelligent matching, adaptive application submissions, and full-funnel analytics while enforcing security, compliance, and observability from day one.
+This repository bootstraps the Next.js 14 preview of **AIJobApply**, an automated job application copilot. It demonstrates the navigation shell, dashboard summaries, mocked data flows, and authentication powered by NextAuth with a credentials provider. The goal is to provide a lightweight, Vercel-ready experience for validating page structure and design decisions before wiring real data sources.
 
-## Feature Highlights
+## Preview Highlights
 
-- **Multi-site job intelligence** – Distributed Playwright scrapers with proxy rotation, CAPTCHA solving, and configurable retry policies capture structured job insights from LinkedIn, Indeed, Glassdoor, RemoteOK, and more.
-- **AI-powered matching** – Semantic scoring blends vector embeddings, domain skills, experience, location, and salary signals to rank opportunities per candidate preferences.
-- **Application automation** – Fuzzy field detection, profile-to-form mapping, resume uploads, and confirmation tracking deliver automated submissions across direct apply, email, and external workflows.
-- **Campaign operations** – BullMQ queues coordinate rate-limited, prioritized, and recoverable campaigns with configurable daily limits and diversity controls.
-- **Content generation** – Cover letter generation, resume optimization, and profile enrichment use OpenAI/Anthropic providers with deterministic templates as fallbacks.
-- **Analytics & insights** – Real-time dashboards, funnel metrics, and predictive signals surface campaign performance, response velocity, and ROI outcomes.
-- **Communications hub** – Email, SMS, and Slack notifications update users on key milestones, with IMAP-ready hooks for bidirectional email response tracking.
-- **Compliance & security** – GDPR/CCPA-aligned consent tracking, encryption-ready storage, and guardrails for responsible automation baked into shared libraries.
-
-## Architecture Overview
-
-| Layer                | Description |
-| -------------------- | ----------- |
-| **Next.js App Router** | Modern React UI, API routes for match scoring, cover-letter generation, and analytics summarisation. |
-| **Prisma ORM**          | Postgres schema covers users, profiles, campaigns, job postings, applications, notifications, analytics, and automation tasks. |
-| **BullMQ + Redis**      | Queue provider module provisions named queues and workers for scraping, matching, application, notification, and analytics workloads. |
-| **Content Services**    | AI-backed generation with templated fallbacks, profile optimization heuristics, and embedding upserts to vector DBs. |
-| **Integrations**        | Twilio, SendGrid, Slack, OpenAI, Anthropic, Pinecone, AWS S3, PostHog, and Sentry ready for drop-in configuration. |
-
-## Project Structure
-
-```
-src/
-  app/
-    api/
-      analytics/summary/route.ts   # Analytics aggregation endpoint
-      cover-letter/route.ts        # Cover letter generation endpoint
-      matching/route.ts            # Match score endpoint
-    globals.css                    # Tailwind design tokens + theming
-    layout.tsx                     # Application shell metadata
-    page.tsx                       # Marketing + capability overview
-  lib/
-    analytics/metrics.ts           # Funnel metrics + rates
-    applications/                  # Automation engine + status tracker
-    campaigns/campaignService.ts   # Campaign orchestration helpers
-    config/env.ts                  # Zod-validated environment loader
-    content/                       # Cover letter + profile optimisation
-    db/prisma.ts                   # Prisma client singleton
-    files/storage.ts               # S3/R2 storage utilities
-    matching/                      # Semantic scoring + embeddings
-    notifications/dispatcher.ts    # Email/SMS/Slack notifications
-    observability/instrumentation.ts # Sentry + PostHog wiring
-    queue/queueProvider.ts         # Redis-backed queue factory
-    scraping/                      # Scraper types, registry, LinkedIn stub
-    security/compliance.ts         # Consent + sanitisation helpers
-prisma/
-  schema.prisma                    # Comprehensive relational schema
-  prisma.config.ts                 # Prisma CLI configuration
-```
+- ✅ **App Router + TypeScript** — opinionated structure with route-based layouts and metadata.
+- ✅ **Tailwind CSS + shadcn/ui** — theming aligned to the AIJobApply palette (deep blue, emerald, grayscale) and Inter font.
+- ✅ **NextAuth demo** — credentials provider using an in-memory user, with a Google OAuth placeholder ready once credentials are added.
+- ✅ **Mocked datasets** — dashboard metrics, activity feed, job listings, applications, and profile content rendered in-memory.
+- ✅ **Reusable UI primitives** — button, card, tabs, tables, avatar, badges, toast notifications, and theme toggles.
+- ✅ **Healthcheck endpoint** — `GET /api/health` returns `{ ok: true }` for deployment smoke tests.
 
 ## Getting Started
 
-1. **Install dependencies**
-   ```bash
-   npm install
-   ```
+```bash
+npm install
+npm run dev
+```
 
-2. **Configure environment**
-   - Copy `.env.example` to `.env` and provide credentials for Postgres, Redis, storage, and external providers.
-   - Required at minimum: `DATABASE_URL`, `REDIS_URL`, and secrets for any integrations you intend to exercise.
+Then open [http://localhost:3000](http://localhost:3000). Navigation is fully wired between the following routes:
 
-3. **Generate Prisma client**
-   ```bash
-   npx prisma generate
-   ```
+| Route | Description |
+| --- | --- |
+| `/` | Landing page with hero, feature highlights, and CTAs |
+| `/auth` | Sign-in/sign-up preview powered by NextAuth credentials |
+| `/dashboard` | Metrics, pipeline summary, and recent activity feed |
+| `/jobs` | Curated job list with mocked relevance scores and filters |
+| `/applications` | Application table showing queued, in-progress, and submitted states |
+| `/profile` | Tabbed personal, experience, skill, preference, and document summaries |
+| `/settings` | Account & notification placeholders |
+| `/api/health` | JSON healthcheck used by CI/CD |
 
-4. **Run the development server**
-   ```bash
-   npm run dev
-   ```
+### Demo credentials
 
-   Visit [http://localhost:3000](http://localhost:3000) to explore the UI and API endpoints:
-   - `POST /api/matching` – compute suitability score for a job/profile pair.
-   - `POST /api/cover-letter` – generate a contextualized cover letter.
-   - `POST /api/analytics/summary` – derive funnel metrics from application logs.
+Use the following values to exercise authenticated areas (no persistence or database is required):
 
-## Queue & Background Jobs
+```
+Email: demo@aijobapply.com
+Password: password123
+```
 
-The queue factory in `src/lib/queue/queueProvider.ts` provisions named queues (`scraping`, `matching`, `applications`, `notifications`, `analytics`) backed by Redis. Workers can be registered with custom processors and concurrency settings, enabling:
+Google OAuth will become available once `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are set. Until then, the button is rendered as a disabled placeholder.
 
-- Distributed scraping pipelines using Playwright and rotating proxies.
-- Intelligent job matching, prioritization, and campaign scheduling.
-- Automated application submissions with resiliency and retry logic.
-- Notification fan-out across email, SMS, and Slack channels.
+## Environment variables
 
-## Data Model Essentials
+Copy `.env.example` to `.env` and supply values as needed:
 
-The Prisma schema models the platform holistically:
+| Variable | Required | Description |
+| --- | --- | --- |
+| `NEXTAUTH_SECRET` | ✅ | Sign your NextAuth JWTs. Generate with `openssl rand -base64 32` for production. |
+| `NEXTAUTH_URL` | ✅ | Base URL of the app (e.g. `http://localhost:3000`, or the Vercel domain). |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Optional | Enable Google OAuth once credentials are available. |
+| `DATABASE_URL` | Optional | Placeholder for future persistence. |
+| `NEXT_PUBLIC_APP_NAME` | ✅ | Public-facing name used in metadata and UI. |
 
-- **User & Profile** – role-based access, preference structures, experiences, and education history.
-- **Skills & Resumes** – taxonomy-aligned skills with proficiency scoring and resume version history.
-- **Job Postings & Matches** – normalized job data, match breakdowns, and campaign-ready linking.
-- **Campaigns & Jobs** – orchestrated application flows with prioritisation and scheduling metadata.
-- **Applications & Events** – submission lifecycle tracking, cover letter linkage, and response events.
-- **Notifications & Integrations** – communication preferences and channel integrations.
-- **Analytics & Automation Tasks** – roll-up metrics and queue-bound work items.
+## Scripts
 
-## Observability & Compliance
+| Script | Description |
+| --- | --- |
+| `npm run dev` | Start the development server |
+| `npm run build` | Create a production build |
+| `npm run start` | Serve the production build |
+| `npm run lint` | Run ESLint checks |
+| `npm run typecheck` | Static type analysis with TypeScript |
+| `npm run format` | Verify formatting via Prettier |
 
-- **Observability** – Optional Sentry (`SENTRY_DSN`) and PostHog (`POSTHOG_API_KEY`) integrations capture errors and product analytics via `observability/instrumentation` helpers.
-- **Compliance** – Consent validation and data sanitisation utilities offer GDPR/CCPA safeguards, while notification dispatchers respect opt-in channels.
+## Deployment
 
-## Next Steps
+1. Create a new project in [Vercel](https://vercel.com/import) and link it to this repository/branch.
+2. Populate the environment variables listed above in the Vercel dashboard (at minimum `NEXTAUTH_SECRET`, `NEXTAUTH_URL`, and `NEXT_PUBLIC_APP_NAME`).
+3. Trigger a deploy (push to any branch or use the "Deploy" button). Vercel will build the project with `npm run build` and expose a preview URL for each PR along with a production deployment once merged to `main`.
+4. Record the generated preview URL in the PR description or here in the README to share access with reviewers.
 
-- Connect additional scrapers by registering new `JobBoardScraper` implementations with `scraperRegistry`.
-- Implement BullMQ workers for scraping, matching, application processing, and analytics.
-- Extend the UI with authenticated dashboards (NextAuth.js) and real-time performance visualizations.
-- Add IMAP/SMTP listeners for inbound email response classification and calendar scheduling integrations.
+> ℹ️ A preview deployment becomes available immediately after the repository is linked in Vercel—no further code changes are required.
 
-> ⚠️ Many external integrations require credentials before they can execute. The code paths guard against missing configuration and fall back to safe no-op behaviour until fully wired to production infrastructure.
+## CI
+
+A lightweight GitHub Actions workflow (`.github/workflows/ci.yml`) installs dependencies, runs `npm run lint`, `npm run typecheck`, and `npm run build` to ensure pull requests stay healthy.
