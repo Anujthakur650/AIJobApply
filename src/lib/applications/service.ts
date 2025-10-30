@@ -15,7 +15,10 @@ export const getApplicationQueue = async (userId: string) =>
         take: 5,
       },
     },
-    orderBy: { createdAt: "desc" },
+    orderBy: [
+      { priority: "desc" },
+      { createdAt: "desc" },
+    ],
   });
 
 export const getApplication = async (userId: string, id: string) =>
@@ -88,4 +91,18 @@ export const addApplicationNote = async (
       payload: { note, userId },
     },
   });
+};
+
+export const reorderApplications = async (
+  userId: string,
+  orderedIds: string[]
+) => {
+  const updates = orderedIds.map((id, index) =>
+    prisma.jobApplication.update({
+      where: { id, userId },
+      data: { priority: orderedIds.length - index },
+    })
+  );
+
+  await prisma.$transaction(updates);
 };

@@ -7,6 +7,7 @@ import {
   markPrimaryResume,
   updateResumeTags,
 } from "@/lib/resumes/service";
+import { recordAuditLog } from "@/lib/security/audit";
 
 const updateSchema = z.object({
   isPrimary: z.boolean().optional(),
@@ -45,6 +46,13 @@ export const PATCH = async (
       });
     }
 
+    await recordAuditLog({
+      userId,
+      action: "resume.updated",
+      resource: params.id,
+      metadata: parsed.data,
+    });
+
     return NextResponse.json({ success: true });
   } catch (error) {
     if ((error as Error).message === "UNAUTHENTICATED") {
@@ -66,6 +74,13 @@ export const DELETE = async (
   try {
     const { userId } = await requireUser();
     await deleteResume(userId, params.id);
+
+    await recordAuditLog({
+      userId,
+      action: "resume.deleted",
+      resource: params.id,
+    });
+
     return NextResponse.json({ success: true });
   } catch (error) {
     if ((error as Error).message === "UNAUTHENTICATED") {

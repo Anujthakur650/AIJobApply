@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { DataDeletionStatus } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import { requireUser } from "@/lib/auth/session";
 import { updateProfileCompletion } from "@/lib/onboarding/service";
+import { recordAuditLog } from "@/lib/security/audit";
 
 const profileSchema = z.object({
   headline: z.string().nullable().optional(),
@@ -20,6 +22,10 @@ const updateSchema = z.object({
   timezone: z.string().optional(),
   profile: profileSchema.optional(),
   preferences: preferencesSchema.optional(),
+});
+
+const deletionSchema = z.object({
+  reason: z.string().max(500).optional(),
 });
 
 const canAccess = (currentUser: { id: string; role?: string }, targetId: string) =>
@@ -119,6 +125,13 @@ export const PATCH = async (
 
     const snapshot = await updateProfileCompletion(params.id);
 
+    await recordAuditLog({
+      userId: params.id,
+      action: "user.profile_updated",
+      resource: "user",
+      metadata: parsed.data,
+    });
+
     return NextResponse.json({ success: true, snapshot });
   } catch (error) {
     if ((error as Error).message === "UNAUTHENTICATED") {
@@ -127,5 +140,59 @@ export const PATCH = async (
 
     console.error("Failed to update user", error);
     return NextResponse.json({ error: "Unable to update user" }, { status: 500 });
+  }
+};
+
+export const DELETE = async (
+  request: Request,
+  { params }: { params: { id: string } }
+) => {
+  try {
+    const { userId, role } = await requireUser();
+
+    if (!canAccess({ id: userId, role }, params.id)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    let parsed = { reason: undefined as string | undefined };
+
+    if (request.headers.get("content-type")?.includes("application/json")) {
+      const body = await request.json().catch(() => ({}));
+      const result = deletionSchema.safeParse(body ?? {});
+      if (result.success) {
+        parsed = result.data;
+      }
+    }
+
+    const deletion = await prisma.dataDeletionRequest.create({
+      data: {
+        userId: params.id,
+        status: DataDeletionStatus.PENDING,
+        reason: parsed.reason ?? null,
+        metadata: {
+          requestedBy: userId,
+          role,
+        },
+      },
+    });
+
+    await recordAuditLog({
+      userId,
+      action: "user.deletion_requested",
+      resource: params.id,
+      metadata: { requestId: deletion.id, reason: parsed.reason },
+    });
+
+    return NextResponse.json({ request: deletion });
+  } catch (error) {
+    if ((error as Error).message === "UNAUTHENTICATED") {
+      return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
+    }
+
+    console.error("Failed to request data deletion", error);
+    return NextResponse.json(
+      { error: "Unable to request deletion" },
+      { status: 500 }
+    );
   }
 };

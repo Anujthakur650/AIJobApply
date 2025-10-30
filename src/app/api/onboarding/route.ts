@@ -9,6 +9,7 @@ import {
   updateProfileCompletion,
 } from "@/lib/onboarding/service";
 import { listResumes } from "@/lib/resumes/service";
+import { recordAuditLog } from "@/lib/security/audit";
 
 const updateSchema = z.object({
   step: z.number().int().min(1).max(4).optional(),
@@ -66,6 +67,13 @@ export const PATCH = async (request: Request) => {
 
     const onboarding = await updateOnboardingProgress(userId, parsed.data);
     const snapshot = await updateProfileCompletion(userId);
+
+    await recordAuditLog({
+      userId,
+      action: "onboarding.updated",
+      resource: "onboarding",
+      metadata: parsed.data,
+    });
 
     return NextResponse.json({
       progress: onboarding,

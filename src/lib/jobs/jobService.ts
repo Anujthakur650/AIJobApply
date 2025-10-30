@@ -164,6 +164,7 @@ export type JobListItem = {
   workArrangement: string | null;
   postingDate: Date | null;
   description: string | null;
+  url: string;
   matchScore: number;
   matchBreakdown: Record<string, number>;
   matchReasons: string[];
@@ -260,6 +261,7 @@ export const searchJobsForUser = async (
       workArrangement: job.workArrangement,
       postingDate: job.postingDate,
       description: job.description,
+      url: job.url,
       matchScore: Math.round(match.score * 100),
       matchBreakdown: match.breakdown,
       matchReasons: match.reasons,
@@ -270,7 +272,7 @@ export const searchJobsForUser = async (
   return applyFilter(ranked, filters).sort((a, b) => b.matchScore - a.matchScore);
 };
 
-const storeScrapedJobs = async (board: string, jobs: ScrapedJob[]) => {
+export const storeScrapedJobs = async (board: string, jobs: ScrapedJob[]) => {
   if (!jobs.length) {
     return [];
   }

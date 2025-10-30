@@ -1,12 +1,14 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { ApplicationStatus } from "@prisma/client";
+import { prisma } from "@/lib/db/prisma";
 import { requireUser } from "@/lib/auth/session";
 import {
   addApplicationNote,
   getApplication,
   updateApplicationStatus,
 } from "@/lib/applications/service";
+import { enqueueNotification } from "@/lib/queue/tasks";
 
 const updateSchema = z.object({
   status: z.nativeEnum(ApplicationStatus).optional(),
@@ -54,6 +56,13 @@ export const PATCH = async (
 
     const { userId } = await requireUser();
 
+    let notificationTarget: {
+      email: string;
+      jobTitle?: string | null;
+      company?: string | null;
+      status?: ApplicationStatus;
+    } | null = null;
+
     if (parsed.data.status) {
       await updateApplicationStatus(
         userId,
@@ -61,10 +70,55 @@ export const PATCH = async (
         parsed.data.status,
         parsed.data.metadata ?? null
       );
+
+      const enriched = await prisma.jobApplication.findFirst({
+        where: { id: params.id, userId },
+        include: {
+          user: true,
+          jobPosting: true,
+        },
+      });
+
+      if (enriched?.user.email) {
+        notificationTarget = {
+          email: enriched.user.email,
+          jobTitle: enriched.jobPosting?.title,
+          company: enriched.jobPosting?.company,
+          status: parsed.data.status,
+        };
+      }
     }
 
     if (parsed.data.note) {
       await addApplicationNote(userId, params.id, parsed.data.note);
+    }
+
+    if (notificationTarget) {
+      const statusLabel = notificationTarget.status?.replace(/_/g, " ") ?? "updated";
+      const subject = `Application ${statusLabel.toLowerCase()}${
+        notificationTarget.jobTitle ? ` • ${notificationTarget.jobTitle}` : ""
+      }`;
+      const companyLine = notificationTarget.company
+        ? `<p style="margin: 8px 0 0; color: #334155;">${notificationTarget.company}</p>`
+        : "";
+
+      await enqueueNotification({
+        channels: ["email"],
+        email: {
+          to: notificationTarget.email,
+          subject,
+          html: `<!doctype html><html><body style="font-family:Inter,Arial,sans-serif; background:#f8fafc; padding:32px;">
+              <div style="max-width:480px;margin:0 auto;background:#ffffff;border-radius:16px;padding:32px;box-shadow:0 20px 60px rgba(15,23,42,0.08);">
+                <h2 style="margin:0 0 12px;color:#0f172a;">Application status updated</h2>
+                <p style="margin:0 0 12px;color:#475569;">
+                  Your application has been marked as <strong>${statusLabel.toLowerCase()}</strong>.
+                </p>
+                ${companyLine}
+                <p style="margin:24px 0 0;color:#94a3b8;font-size:12px;">Automated notification from AIJobApply.</p>
+              </div>
+            </body></html>`,
+        },
+      });
     }
 
     const application = await getApplication(userId, params.id);

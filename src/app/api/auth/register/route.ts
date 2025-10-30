@@ -6,6 +6,7 @@ import {
   createEmailVerificationToken,
 } from "@/lib/auth/tokens";
 import { sendVerificationEmail } from "@/lib/auth/mailer";
+import { recordAuditLog, recordConsent } from "@/lib/security/audit";
 
 const registerSchema = z.object({
   email: z.string().email(),
@@ -74,6 +75,16 @@ export const POST = async (request: Request) => {
 
     const verification = await createEmailVerificationToken(email);
     await sendVerificationEmail(email, verification.token, user.name ?? undefined);
+
+    await recordAuditLog({
+      userId: user.id,
+      action: "user.registered",
+      resource: "user",
+      metadata: { email },
+    });
+    await recordConsent(user.id, "terms_of_service", true, {
+      method: "self-service",
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {

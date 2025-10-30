@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireUser } from "@/lib/auth/session";
 import { listResumes, saveResume } from "@/lib/resumes/service";
+import { recordAuditLog } from "@/lib/security/audit";
 
 const uploadSchema = z.object({
   label: z.string().optional(),
@@ -71,6 +72,16 @@ export const POST = async (request: Request) => {
       resumeId: parsedFields.data.resumeId,
       tags,
       isPrimary: parsedFields.data.isPrimary,
+    });
+
+    await recordAuditLog({
+      userId,
+      action: "resume.uploaded",
+      resource: "resume",
+      metadata: {
+        resumeId: result.resumeId,
+        label: parsedFields.data.label,
+      },
     });
 
     return NextResponse.json(result, { status: 201 });
