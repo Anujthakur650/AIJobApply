@@ -1,172 +1,79 @@
-import { PrismaAdapter } from "@next-auth/prisma-adapter";
-import type { NextAuthOptions } from "next-auth";
-import { getServerSession } from "next-auth";
-import CredentialsProvider from "next-auth/providers/credentials";
+import type { AuthOptions, User } from "next-auth";
+import Credentials from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
-import LinkedInProvider from "next-auth/providers/linkedin";
-import { z } from "zod";
-import { prisma } from "@/lib/db/prisma";
-import { getEnv } from "@/lib/config/env";
-import { verifyPassword } from "@/lib/auth/password";
 
-const env = getEnv();
+import { env } from "@/lib/env";
+import { demoUser } from "@/lib/auth/mock-data";
 
-const credentialsSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(8),
-});
-
-const baseProviders: NextAuthOptions["providers"] = [
-  CredentialsProvider({
-    name: "Email and password",
+const providers: AuthOptions["providers"] = [
+  Credentials({
+    name: "Credentials",
     credentials: {
-      email: {
-        label: "Email",
-        type: "email",
-        placeholder: "you@example.com",
-      },
-      password: {
-        label: "Password",
-        type: "password",
-        placeholder: "••••••••",
-      },
+      email: { label: "Email", type: "email" },
+      password: { label: "Password", type: "password" },
     },
     async authorize(credentials) {
-      const parsed = credentialsSchema.safeParse(credentials);
-
-      if (!parsed.success) {
+      if (!credentials?.email || !credentials?.password) {
         return null;
       }
 
-      const user = await prisma.user.findUnique({
-        where: { email: parsed.data.email.toLowerCase() },
-      });
+      const isValidEmail = credentials.email.toLowerCase() === demoUser.email;
+      const isValidPassword = credentials.password === demoUser.password;
 
-      if (!user?.passwordHash) {
+      if (!isValidEmail || !isValidPassword) {
         return null;
       }
-
-      if (!user.emailVerified) {
-        throw new Error("EMAIL_NOT_VERIFIED");
-      }
-
-      const isValid = await verifyPassword(parsed.data.password, user.passwordHash);
-
-      if (!isValid) {
-        return null;
-      }
-
-      await prisma.user.update({
-        where: { id: user.id },
-        data: { lastSignInAt: new Date() },
-      });
 
       return {
-        id: user.id,
-        email: user.email,
-        name: user.name ?? undefined,
-        role: user.role,
-      } as unknown as Record<string, unknown>;
+        id: demoUser.id,
+        name: demoUser.name,
+        email: demoUser.email,
+        role: demoUser.role,
+        headline: demoUser.headline,
+        location: demoUser.location,
+      } as User;
     },
   }),
 ];
 
 if (env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET) {
-  baseProviders.push(
+  providers.push(
     GoogleProvider({
       clientId: env.GOOGLE_CLIENT_ID,
       clientSecret: env.GOOGLE_CLIENT_SECRET,
-    })
+    }),
   );
 }
 
-if (env.LINKEDIN_CLIENT_ID && env.LINKEDIN_CLIENT_SECRET) {
-  baseProviders.push(
-    LinkedInProvider({
-      clientId: env.LINKEDIN_CLIENT_ID,
-      clientSecret: env.LINKEDIN_CLIENT_SECRET,
-    })
-  );
-}
-
-export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(prisma),
-  secret: env.NEXTAUTH_SECRET,
-  providers: baseProviders,
+export const authOptions: AuthOptions = {
   session: {
     strategy: "jwt",
-    maxAge: 30 * 24 * 60 * 60,
   },
+  secret: env.NEXTAUTH_SECRET,
+  providers,
   pages: {
-    signIn: "/login",
-    error: "/login",
-    verifyRequest: "/verify",
-    newUser: "/onboarding",
+    signIn: "/auth",
   },
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
-        if ((user as Record<string, unknown>).role) {
-          token.role = (user as Record<string, unknown>).role;
-        } else {
-          const dbUser = await prisma.user.findUnique({
-            where: { id: user.id },
-            select: { role: true },
-          });
-          token.role = dbUser?.role ?? "USER";
-        }
-      }
-
-      if (!token.role && token.sub) {
-        const dbUser = await prisma.user.findUnique({
-          where: { id: token.sub },
-          select: { role: true },
-        });
-        token.role = dbUser?.role ?? "USER";
+        token.role = (user as typeof user & { role?: string }).role ?? demoUser.role;
+        token.headline = (user as typeof user & { headline?: string }).headline;
+        token.location = (user as typeof user & { location?: string }).location;
       }
 
       return token;
     },
     async session({ session, token }) {
-      if (session.user) {
-        session.user.id = (token.sub ?? token.id ?? "") as string;
-        if (token.role) {
-          session.user.role = token.role as string;
-        }
+      if (token && session.user) {
+        session.user.id = token.id as string;
+        session.user.role = (token.role as string) ?? demoUser.role;
+        session.user.headline = token.headline as string | undefined;
+        session.user.location = token.location as string | undefined;
       }
 
       return session;
     },
-    async signIn({ user, account }) {
-      if (account?.provider && account.provider !== "credentials") {
-        await prisma.user.update({
-          where: { id: user.id },
-          data: {
-            emailVerified: new Date(),
-            lastSignInAt: new Date(),
-          },
-        });
-      }
-
-      return true;
-    },
-  },
-  events: {
-    async createUser({ user }) {
-      await prisma.userProfile.upsert({
-        where: { userId: user.id },
-        update: {},
-        create: { userId: user.id },
-      });
-
-      await prisma.onboardingProgress.upsert({
-        where: { userId: user.id },
-        update: {},
-        create: { userId: user.id },
-      });
-    },
   },
 };
-
-export const getSession = () => getServerSession(authOptions);
