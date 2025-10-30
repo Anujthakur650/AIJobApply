@@ -1,3 +1,5 @@
+import { glassdoorScraper } from "@/lib/scraping/glassdoorScraper";
+import { indeedScraper } from "@/lib/scraping/indeedScraper";
 import { linkedInScraper } from "@/lib/scraping/linkedinScraper";
 import type {
   JobBoardScraper,
@@ -6,11 +8,17 @@ import type {
   ScrapeResult,
 } from "@/lib/scraping/types";
 
-const scrapers: JobBoardScraper[] = [linkedInScraper];
+const scrapers: JobBoardScraper[] = [
+  linkedInScraper,
+  indeedScraper,
+  glassdoorScraper,
+];
 
 export const registerScraper = (scraper: JobBoardScraper) => {
   scrapers.push(scraper);
 };
+
+export const listScrapers = () => scrapers;
 
 export const scrapeJobs = async (
   payload: ScrapePayload,
